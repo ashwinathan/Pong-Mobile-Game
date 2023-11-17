@@ -1,0 +1,69 @@
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Point
+import android.graphics.Rect
+import android.util.Log
+import android.view.View
+
+
+class GameView : View {
+    private var context : Context
+    private var width : Int = 0
+    private var height : Int = 0
+    private var paint : Paint
+    private var pong : Pong
+    private var ballRadius : Int = 0
+    public lateinit var activityContext: Context
+
+
+    constructor(context : Context, width : Int, height : Int) : super(context) {
+        this.context = context
+        this.width = width
+        this.height = height
+
+
+        paint = Paint()
+        paint.color = Color.BLACK
+        paint.isAntiAlias = true
+        paint.strokeWidth = 20.0f
+        paint.textSize = 100f
+
+
+        ballRadius = width / 30
+        pong = Pong(context,width, height, .2f, DELTA_TIME)
+        pong.setBallCenter(Point(width / 2, ballRadius))
+    }
+
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        var cx = pong.getBallCenter().x.toFloat()
+        var cy = pong.getBallCenter().y.toFloat()
+
+        canvas.drawCircle(cx, cy, ballRadius.toFloat(), paint)
+        canvas.drawRect(pong.getPaddle(), paint)
+
+        if (!pong.getGameStatus() && !pong.getFirstTurn()) {
+            Log.w("pong", "third score: " + pong.getCurrentScore()  )
+            canvas.drawText("Score: " + pong.getCurrentScore(), (width / 15).toFloat(),
+                (height / 10).toFloat(), paint)
+            if (pong.isBestScore()) {
+                canvas.drawText("HIGH SCORE", (width / 15).toFloat(),
+                    (height / 6).toFloat(), paint)
+            } else {
+                canvas.drawText("High score not beat", (width / 15).toFloat(),
+                    (height / 6).toFloat(), paint)
+            }
+        }
+    }
+
+    fun getPong() : Pong {
+        return pong
+    }
+
+    companion object {
+        const val DELTA_TIME : Int  = 100
+    }
+}
