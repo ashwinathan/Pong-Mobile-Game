@@ -1,0 +1,118 @@
+package com.example.project6
+
+
+import android.app.Activity
+import android.content.res.Resources
+import android.media.SoundPool
+import android.os.Bundle
+import android.util.Log
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.view.View
+import android.view.View.OnTouchListener
+import java.util.Timer
+
+
+class MainActivity : Activity() {
+    private lateinit var pong : Pong
+    private lateinit var detector : GestureDetector
+    private var startTouchX : Int = 0
+    private var startTouchY : Int  = 0
+    private var width : Int = 0
+    private var height : Int  = 0
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+
+        width = Resources.getSystem().displayMetrics.widthPixels
+        height = Resources.getSystem().displayMetrics.heightPixels
+
+
+        var statusBarId : Int = resources.getIdentifier("status_bar_height", "dimen", "android")
+        var statusBarHeight : Int  = resources.getDimensionPixelSize(statusBarId)
+
+
+        gameView = GameView(this, width, height - statusBarHeight)
+        setContentView(gameView)
+
+
+        pong = gameView.getPong()
+
+
+        var handler = TouchHandler()
+        gameView.setOnTouchListener(handler)
+
+
+        var gameTimer = Timer()
+        var gameTimerTask = GameTimerTask(this)
+        gameTimer.schedule(gameTimerTask, 0L, GameView.DELTA_TIME.toLong())
+
+
+        var poolBuilder : SoundPool.Builder = SoundPool.Builder( )
+        pool = poolBuilder.build()
+        hitId = pool.load( this, R.raw.hit, 1 )
+    }
+
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        if(event != null)
+            detector.onTouchEvent(event)
+        return super.onTouchEvent(event)
+    }
+
+
+    fun updateModel() {
+        if(pong.checkBottomScreen()) {
+            pong.resetBall()
+        }
+        else {
+            if (pong.getGameStatus()) {
+                pong.moveBall()
+            }
+        }
+    }
+
+
+    fun updateView( ) {
+        gameView.postInvalidate()
+    }
+
+
+    inner class TouchHandler : OnTouchListener {
+        override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+            if(event != null) {
+                var action = event.action
+                if(action == MotionEvent.ACTION_DOWN) {
+                    pong.setGameStatus(true)
+                    startTouchX = event.x.toInt()
+                    startTouchY = event.y.toInt()
+                } else if(action == MotionEvent.ACTION_MOVE) {
+                    pong.getPaddle().left += event.x.toInt() - startTouchX
+                    pong.getPaddle().right += event.x.toInt() - startTouchX
+                    if (pong.getPaddle().left < 0) {
+                        pong.getPaddle().left = 0
+                        pong.getPaddle().right = width / 3
+                    }
+
+                    if (pong.getPaddle().right > width) {
+                        pong.getPaddle().right = width
+                        pong.getPaddle().left = 2 * width / 3
+                    }
+                }
+            }
+            return true
+        }
+    }
+
+
+    companion object {
+        lateinit var pool : SoundPool
+        var hitId : Int = 0
+        lateinit var gameView : GameView
+    }
+
+
+}
