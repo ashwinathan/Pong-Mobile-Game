@@ -1,0 +1,180 @@
+import android.content.Context
+import android.content.SharedPreferences
+import android.graphics.Point
+import android.graphics.Rect
+import android.util.Log
+import com.example.project6.MainActivity.Companion.gameView
+import com.example.project6.MainActivity.Companion.hitId
+import kotlin.math.cos
+import kotlin.math.sin
+
+
+class Pong {
+    private var gameStatus : Boolean = false
+    private var firstTurn : Boolean = true
+    private lateinit var ballCenter : Point
+    private var width : Int = 0
+    private var height : Int = 0
+    private var ballRadius : Int = 0
+    private var ballSpeed : Float = 0f
+    private var deltaTime : Int = 0
+    private var ballAngle : Float = Math.PI.toFloat() / 4
+    private var ballDirection : Point = Point(-1, -1)
+    private var paddle : Rect
+    private var currentScore : Int = 0
+    private var bestScore: Int = 0
+    private var context: Context;
+    private var beatBestScore: Boolean = false
+    private var gameStart = true
+
+
+    constructor(context: Context, width : Int, height : Int, ballSpeed : Float, deltaTime : Int) {
+        var pref : SharedPreferences = context.getSharedPreferences( context.packageName + "_preferences",
+            Context.MODE_PRIVATE )
+        this.bestScore = pref.getInt("BEST",0)
+        this.width = width
+        this.height = height
+        this.ballSpeed = ballSpeed
+        this.deltaTime = deltaTime
+        this.context= context
+        ballRadius = width / 30
+
+
+        paddle = Rect(width / 3, 5 * height / 6, 2 * width / 3,
+            13 * height / 15)
+    }
+
+
+    fun getGameStatus() : Boolean {
+        return gameStatus
+    }
+
+
+    fun getFirstTurn() : Boolean {
+        return firstTurn
+    }
+
+
+    fun getCurrentScore() : Int {
+        return currentScore
+    }
+
+
+    fun setGameStatus(status : Boolean) {
+        gameStatus = status
+    }
+
+
+    fun setBallCenter(point : Point) {
+        ballCenter = point
+    }
+
+
+    fun getBallCenter() : Point {
+        return ballCenter
+    }
+
+
+    fun getPaddle() : Rect {
+        return paddle
+    }
+
+
+    fun checkBottomScreen() : Boolean {
+        if (ballCenter.y + ballRadius > height) {
+            return true
+        }
+
+
+        return false
+    }
+
+
+    fun checkLeftScreen() {
+        if (ballCenter.x - ballRadius < 0) {
+            ballDirection.x *= -1
+        }
+    }
+
+
+    fun checkRightScreen() {
+        if (ballCenter.x + ballRadius > width) {
+            ballDirection.x *= -1
+        }
+    }
+
+
+    fun checkTopScreen() {
+        if (ballCenter.y < ballRadius) {
+            ballDirection.y = -1
+        }
+    }
+
+
+    fun checkPaddle() {
+        if (ballCenter.x - ballRadius+8 > paddle.left && ballCenter.x + ballRadius+8 < paddle.right
+            && ballCenter.y + ballRadius+8 > paddle.top && ballCenter.y + ballRadius+8 < paddle.bottom) {
+            ballDirection.y = 1
+            MainActivity.pool.play(hitId, 1.0f, 1.0f, 0, 0, 1.0f )
+            currentScore += 1
+            Log.w("pong", "score: " + getCurrentScore())
+            setPreferences(context)
+        }
+    }
+
+
+    fun resetBall() {
+        setBallCenter(Point(width / 2, ballRadius))
+        ballDirection = Point(-1, -1)
+        gameStatus = false
+        firstTurn = false
+        Log.w("pong", "check score: " + currentScore  )
+        gameStart = false
+
+    }
+
+    fun getGameStart() : Boolean {
+        return gameStart;
+    }
+
+    fun moveBall() {
+        checkLeftScreen()
+        checkRightScreen()
+        checkTopScreen()
+        checkPaddle()
+
+
+        if (ballDirection == Point(-1, -1)) {
+            ballCenter.x -= (ballSpeed * cos(ballAngle.toDouble()) * deltaTime).toInt()
+            ballCenter.y += (ballSpeed * sin(ballAngle.toDouble()) * deltaTime).toInt()
+        } else if (ballDirection == Point(-1, 1)) {
+            ballCenter.x -= (ballSpeed * cos(ballAngle.toDouble()) * deltaTime).toInt()
+            ballCenter.y -= (ballSpeed * sin(ballAngle.toDouble()) * deltaTime).toInt()
+        } else if (ballDirection == Point(1, -1)) {
+            ballCenter.x += (ballSpeed * cos(ballAngle.toDouble()) * deltaTime).toInt()
+            ballCenter.y += (ballSpeed * sin(ballAngle.toDouble()) * deltaTime).toInt()
+        } else {
+            ballCenter.x += (ballSpeed * cos(ballAngle.toDouble()) * deltaTime).toInt()
+            ballCenter.y -= (ballSpeed * sin(ballAngle.toDouble()) * deltaTime).toInt()
+        }
+
+
+    }
+
+    fun setPreferences( context : Context) {
+        var pref : SharedPreferences = context.getSharedPreferences( context.packageName + "_preferences",
+            Context.MODE_PRIVATE )
+
+        var editor : SharedPreferences.Editor = pref.edit()
+        if (currentScore>bestScore) {
+            beatBestScore= true
+            Log.w("pong", "beat best score")
+            editor.putInt( "BEST", currentScore )
+        }
+        editor.commit()
+    }
+
+    fun isBestScore() : Boolean {
+        return beatBestScore
+    }
+}
