@@ -1,0 +1,20 @@
+import java.util.TimerTask
+
+
+class GameTimerTask : TimerTask {
+    private var activity : MainActivity
+
+
+    constructor(mainActivity : MainActivity) {
+        activity = mainActivity
+    }
+
+
+    override fun run() {
+        activity.updateModel()
+        activity.updateView()
+        if (!MainActivity.gameView.getPong().getGameStart()) {
+            cancel()
+        }
+    }
+}
